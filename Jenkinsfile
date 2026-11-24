@@ -26,11 +26,21 @@ pipeline {
             }
         }
 
+        stage('Backup') {
+            steps {
+                echo 'Creating previous version backup...'
+                sh '''
+                    if [ -f /var/www/html/index.html ]; then
+                        cp /var/www/html/index.html /var/backups/jenkins/index.html
+                    fi
+                '''
+            }
+        }
+
         stage('Deploy') {
             steps {
-                echo 'Deploying website to Nginx...'
+                echo 'Deploying website...'
                 sh 'cp index.html /var/www/html/index.html'
-                echo 'Deployment successful!'
             }
         }
 
@@ -43,11 +53,16 @@ pipeline {
     }
 
     post {
+        failure {
+            echo 'Deployment failed. Restoring previous version...'
+            sh '''
+                if [ -f /var/backups/jenkins/index.html ]; then
+                    cp /var/backups/jenkins/index.html /var/www/html/index.html
+                fi
+            '''
+        }
         success {
             echo 'CI/CD Pipeline completed successfully!'
-        }
-        failure {
-            echo 'Pipeline failed. Check Console Output.'
         }
     }
 }
